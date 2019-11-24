@@ -1,0 +1,21 @@
+{
+  "name": "phraser",
+  "version": "0.0.1",
+  "description": "Musical phrase generator",
+  "main": "index.js",
+  "scripts": {
+    "start": "parcel serve src/index.html"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/webmidi": "^2.0.3",
+    "parcel-bundler": "^1.12.4",
+    "rxjs": "^6.5.3",
+    "typescript": "^3.7.2"
+  },
+  "dependencies": {
+    "parcel-plugin-asset-copier": "^1.0.0"
+  },
+  "assetsPath": "src/assets"
+}
