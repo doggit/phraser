@@ -15,7 +15,6 @@
     "typescript": "^3.7.2"
   },
   "dependencies": {
-    "parcel-plugin-asset-copier": "^1.0.0"
-  },
-  "assetsPath": "src/assets"
+    "mini.css": "^3.0.1"
+  }
 }

@@ -1,5 +1,5 @@
-import {interval, Observable, Subscription} from "rxjs";
-import {filter, map, scan} from "rxjs/operators";
+import {combineLatest, fromEvent, interval, Observable, Subscription} from "rxjs";
+import {filter, map, scan, startWith, switchMap} from "rxjs/operators";
 
 enum PulseType {
     Quarter = 1,
@@ -56,10 +56,10 @@ function createNoteEventStream(notes: number[], bpm: number, pulseType: PulseTyp
     const period$ = createPeriodStream(bpm, pulseType, maxDuration, minDuration);
 
     return period$.pipe(
+        filter(pulse => Math.floor(pulse.pulseIndex / phraseLength) % 2 === 0), // silence every second phrase
         filter(pulse => { // filter to only start of periods
             return pulse.current.currPeriodIndex + 1 === pulse.current.duration
         }),
-        filter(pulse => Math.floor(pulse.pulseIndex / phraseLength) % 2 === 0), // silence every second phrase
         map(() => {
             const notesIndex = Math.floor(Math.random() * notes.length);
             return notes[notesIndex];
@@ -77,44 +77,61 @@ class Main {
     private audioContext: AudioContext = new AudioContext();
     private osc: MyOscillator;
     private noteEventSubscription: Subscription | undefined;
+    private noteEventStream: Observable<NoteEvent>;
 
     constructor() {
-        const startButton = document.getElementById("start");
+        const startButton = document.getElementById('start');
         if (startButton) {
             startButton.addEventListener('click', () => this.start())
         }
 
-        const stopButton = document.getElementById("stop");
+        const stopButton = document.getElementById('stop');
         if (stopButton) {
             stopButton.addEventListener('click', () => this.stop())
         }
 
         this.osc = new MyOscillator(this.audioContext);
 
-        navigator.requestMIDIAccess()
-            .then((midiAccess: WebMidi.MIDIAccess) => {
-                const inputs = Array.from(midiAccess.inputs.values());
+        const bpm$ = fromEvent<InputEvent>(document.getElementById('bpm')!, 'change')
+            .pipe(
+                map((event) => +(event.target as HTMLInputElement).value),
+                startWith(80)
+            );
 
-                inputs
-                    .filter(i => i.manufacturer === 'Roland') // only care about MIDI keyboard
-                    .forEach((input) => {
-                        input.onmidimessage = this.handleMidiMessage;
-                    })
-            });
+        const subdivision$ = fromEvent<InputEvent>(document.getElementById('subdivision')!, 'change')
+            .pipe(
+                map((event) => +(event.target as HTMLInputElement).value as PulseType),
+                startWith(PulseType.Eighth)
+            );
 
+        const maxDuration$ = fromEvent<InputEvent>(document.getElementById('max-duration')!, 'change')
+            .pipe(
+                map((event) => +(event.target as HTMLInputElement).value),
+                startWith(2)
+            );
+
+        const minDuration$ = fromEvent<InputEvent>(document.getElementById('min-duration')!, 'change')
+            .pipe(
+                map((event) => +(event.target as HTMLInputElement).value),
+                startWith(1)
+            );
+
+        const notes$ = fromEvent<InputEvent>(document.getElementById('notes')!, 'change')
+            .pipe(
+                map((event) => Array.from((event.target as HTMLSelectElement).selectedOptions).map(o => +o.value)),
+            );
+
+        notes$.subscribe(x => console.log(x))
+
+        this.noteEventStream = combineLatest([notes$, bpm$, subdivision$, maxDuration$, minDuration$]).pipe(
+            switchMap(([notes, bpm, subdivision, maxDuration, minDuration]) =>
+                createNoteEventStream(notes, bpm, subdivision, maxDuration, minDuration))
+        );
     }
 
-
     start() {
-        const notes = [60, 63, 65];
-        const bpm = 80;
-        const pulseType = PulseType.Eighth;
-        const maxDuration = 2; // in pulses
-        const minDuration = 1;
-
-        const noteOnStream$ = createNoteEventStream(notes, bpm, pulseType, maxDuration, minDuration);
-
-        this.noteEventSubscription = noteOnStream$.pipe(
+        // TODO: create a transpose input
+        this.noteEventSubscription = this.noteEventStream.pipe(
         ).subscribe(
             noteEvent => {
                 this.playNote(noteEvent.curr!!);
@@ -126,15 +143,10 @@ class Main {
         this.noteEventSubscription && this.noteEventSubscription.unsubscribe();
     }
 
-    private handleMidiMessage = (message: WebMidi.MIDIMessageEvent) => {
-        if (message.data[0] === 144) {
-            const note = message.data[1];
-            this.playNote(note);
-        }
-    };
-
     private playNote(note: number) {
         const frequency = 440 * Math.pow(2, (note - 69) / 12); // note -> frequency
+
+        console.log(note);
 
         this.osc.play(frequency);
     }
@@ -161,7 +173,7 @@ class MyOscillator {
 
     play(frequency: number) {
         this.gainAudioParam && this.gainAudioParam.cancelScheduledValues(this.audioContext.currentTime);
-        this.oscGain.gain.value = 0.7;
+        this.oscGain.gain.value = 0.8;
         this.osc.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
         // release
         this.gainAudioParam = this.oscGain.gain.exponentialRampToValueAtTime(0.0001, this.audioContext.currentTime + 2);
