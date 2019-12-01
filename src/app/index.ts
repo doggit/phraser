@@ -1,5 +1,5 @@
 import {combineLatest, fromEvent, interval, Observable, Subscription} from "rxjs";
-import {filter, map, scan, startWith, switchMap} from "rxjs/operators";
+import {filter, map, scan, share, startWith, switchMap, tap} from "rxjs/operators";
 
 enum PulseType {
     Quarter = 1,
@@ -50,7 +50,7 @@ function createPeriodStream(bpm: number, pulseType: PulseType, maxDuration: numb
 
 }
 
-function createNoteEventStream(notes: number[], bpm: number, pulseType: PulseType, maxDuration: number, minDuration: number) {
+function createNoteEventStream(notes: number[], bpm: number, pulseType: PulseType, maxDuration: number, minDuration: number, transpose: number) {
     const phraseLength = pulseType * 4;
 
     const period$ = createPeriodStream(bpm, pulseType, maxDuration, minDuration);
@@ -62,7 +62,7 @@ function createNoteEventStream(notes: number[], bpm: number, pulseType: PulseTyp
         }),
         map(() => {
             const notesIndex = Math.floor(Math.random() * notes.length);
-            return notes[notesIndex];
+            return notes[notesIndex] + transpose;
         }),
         scan<number, NoteEvent>((event, curr) => {
             return {
@@ -74,8 +74,7 @@ function createNoteEventStream(notes: number[], bpm: number, pulseType: PulseTyp
 }
 
 class Main {
-    private audioContext: AudioContext = new AudioContext();
-    private osc: MyOscillator;
+    private osc: MyOscillator | undefined;
     private noteEventSubscription: Subscription | undefined;
     private noteEventStream: Observable<NoteEvent>;
 
@@ -90,47 +89,70 @@ class Main {
             stopButton.addEventListener('click', () => this.stop())
         }
 
-        this.osc = new MyOscillator(this.audioContext);
+        // set startup values. TODO: store in a cookie for revisits
+        const subdivision = document.getElementById('subdivision') as HTMLSelectElement;
+        subdivision.selectedIndex = 1; // Eighth
+        const bpm = document.getElementById('bpm') as HTMLInputElement;
+        bpm.valueAsNumber = 80;
+        const maxDuration = document.getElementById('max-duration') as HTMLInputElement;
+        maxDuration.valueAsNumber = 2;
+        const minDuration = document.getElementById('min-duration') as HTMLInputElement;
+        minDuration.valueAsNumber = 1;
+        const transpose = document.getElementById('transpose') as HTMLInputElement;
+        transpose.valueAsNumber = 0;
+        const notes = document.getElementById('notes') as HTMLSelectElement;
+        notes.selectedIndex = 0;
 
-        const bpm$ = fromEvent<InputEvent>(document.getElementById('bpm')!, 'change')
+        const bpm$ = fromEvent<InputEvent>(bpm!, 'change')
             .pipe(
-                map((event) => +(event.target as HTMLInputElement).value),
+                map((event) => (event.target as HTMLInputElement).valueAsNumber),
                 startWith(80)
             );
 
-        const subdivision$ = fromEvent<InputEvent>(document.getElementById('subdivision')!, 'change')
+        const subdivision$ = fromEvent<InputEvent>(subdivision!, 'change')
             .pipe(
                 map((event) => +(event.target as HTMLInputElement).value as PulseType),
                 startWith(PulseType.Eighth)
             );
 
-        const maxDuration$ = fromEvent<InputEvent>(document.getElementById('max-duration')!, 'change')
+        const maxDuration$ = fromEvent<InputEvent>(maxDuration!, 'change')
             .pipe(
-                map((event) => +(event.target as HTMLInputElement).value),
+                map((event) => (event.target as HTMLInputElement).valueAsNumber),
                 startWith(2)
             );
 
-        const minDuration$ = fromEvent<InputEvent>(document.getElementById('min-duration')!, 'change')
+        const minDuration$ = fromEvent<InputEvent>(minDuration!, 'change')
             .pipe(
-                map((event) => +(event.target as HTMLInputElement).value),
+                map((event) => (event.target as HTMLInputElement).valueAsNumber),
                 startWith(1)
             );
 
-        const notes$ = fromEvent<InputEvent>(document.getElementById('notes')!, 'change')
+        const transpose$ = fromEvent<InputEvent>(transpose!, 'change')
+            .pipe(
+                map((event) => (event.target as HTMLInputElement).valueAsNumber),
+                startWith(0)
+            );
+
+        const notes$ = fromEvent<InputEvent>(notes!, 'change')
             .pipe(
                 map((event) => Array.from((event.target as HTMLSelectElement).selectedOptions).map(o => +o.value)),
             );
 
-        notes$.subscribe(x => console.log(x))
 
-        this.noteEventStream = combineLatest([notes$, bpm$, subdivision$, maxDuration$, minDuration$]).pipe(
-            switchMap(([notes, bpm, subdivision, maxDuration, minDuration]) =>
-                createNoteEventStream(notes, bpm, subdivision, maxDuration, minDuration))
+        this.noteEventStream = combineLatest([notes$, bpm$, subdivision$, maxDuration$, minDuration$, transpose$]).pipe(
+            switchMap(([notes, bpm, subdivision, maxDuration, minDuration, transpose]) =>
+                createNoteEventStream(notes, bpm, subdivision, maxDuration, minDuration, transpose)),
+            share()
         );
     }
 
     start() {
+        if (!this.osc) {
+            this.osc = new MyOscillator();
+        }
+
         // TODO: create a transpose input
+        console.log('start');
         this.noteEventSubscription = this.noteEventStream.pipe(
         ).subscribe(
             noteEvent => {
@@ -140,27 +162,29 @@ class Main {
     }
 
     stop() {
+        console.log('stop');
         this.noteEventSubscription && this.noteEventSubscription.unsubscribe();
     }
 
     private playNote(note: number) {
-        const frequency = 440 * Math.pow(2, (note - 69) / 12); // note -> frequency
+        if (this.osc) {
+            const frequency = 440 * Math.pow(2, (note - 69) / 12); // note -> frequency
 
-        console.log(note);
+            console.log('note', note);
 
-        this.osc.play(frequency);
+            this.osc.play(frequency);
+        }
     }
 
 }
 
 class MyOscillator {
-    private readonly audioContext: AudioContext;
+    private readonly audioContext: AudioContext = new AudioContext();
     private readonly osc: OscillatorNode;
     private readonly oscGain: GainNode;
     private gainAudioParam: AudioParam;
 
-    constructor(private context: AudioContext) {
-        this.audioContext = context;
+    constructor() {
         this.osc = this.createOscillator(this.audioContext);
         // create a gain node so that we can control volume
         this.oscGain = this.createGainNode(this.audioContext);

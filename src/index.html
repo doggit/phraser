@@ -10,11 +10,12 @@
 </head>
 <body>
     <div id="main">
-        <label for="bpm">bpm:</label>
-        <input id="bpm" type="number" value="80" class="bordered">
+        <label for="bpm">bpm:</label><br/>
+        <input id="bpm" type="range" min="40" max="120" value="80" oninput="document.getElementById('bpm-output').value = this.valueAsNumber">
+        <output id="bpm-output">80</output>
         <br/>
 
-        <label for="subdivision">subdivision type:</label>
+        <label for="subdivision">subdivision type:</label><br/>
         <select id="subdivision" class="bordered">
             <option value="1">Quarter</option>
             <option value="2">Eighth</option>
@@ -22,24 +23,35 @@
         </select>
         <br/>
 
-        <label for="max-duration">max note duration (in subdivisions):</label>
-        <input id="max-duration" type="number" value="2" class="bordered">
+        <label for="max-duration">max note duration (in subdivisions):</label><br/>
+        <input id="max-duration" type="range" min="1" max="8" value="2" oninput="document.getElementById('max-duration-output').value = this.valueAsNumber">
+        <output id="max-duration-output">2</output>
         <br/>
 
-        <label for="min-duration">min note duration (in subdivisions):</label>
-        <input id="min-duration" type="number" value="1" class="bordered">
+        <label for="min-duration">min note duration (in subdivisions):</label><br/>
+        <input id="min-duration" type="range" min="1" max="8" value="1" oninput="document.getElementById('min-duration-output').value = this.valueAsNumber">
+        <output id="min-duration-output">1</output>
         <br/>
 
-        <label for="notes">notes:</label>
-        <select id="notes" size="10" multiple class="bordered">
-            <option value="60">C4</option>
-            <option value="61">C#4</option>
-            <option value="62">D4</option>
-            <option value="63">D#4</option>
-            <option value="64">E4</option>
-            <option value="65">F4</option>
-            <option value="66">F#4</option>
-            <option value="67">G4</option>
+        <label for="transpose">transpose playback:</label><br/>
+        <input id="transpose" type="range" min="-12" max="12" value="0" oninput="document.getElementById('transpose-output').value = this.valueAsNumber">
+        <output id="transpose-output">0</output>
+        <br/>
+
+        <label for="notes">notes:</label><br/>
+        <select id="notes" size="12" multiple class="bordered">
+            <option value="60">C</option>
+            <option value="61">C#/Db</option>
+            <option value="62">D</option>
+            <option value="63">D#/Eb</option>
+            <option value="64">E</option>
+            <option value="65">F</option>
+            <option value="66">F#/Gb</option>
+            <option value="67">G</option>
+            <option value="68">G#/Ab</option>
+            <option value="69">A</option>
+            <option value="70">A#/Bb</option>
+            <option value="71">C</option>
         </select>
         <br/>
 
