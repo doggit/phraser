@@ -89,24 +89,26 @@ class Main {
             stopButton.addEventListener('click', () => this.stop())
         }
 
-        // set startup values. TODO: store in a cookie for revisits
+        // get elements
         const subdivision = document.getElementById('subdivision') as HTMLSelectElement;
-        subdivision.selectedIndex = 1; // Eighth
         const bpm = document.getElementById('bpm') as HTMLInputElement;
-        bpm.valueAsNumber = 80;
         const maxDuration = document.getElementById('max-duration') as HTMLInputElement;
-        maxDuration.valueAsNumber = 2;
         const minDuration = document.getElementById('min-duration') as HTMLInputElement;
-        minDuration.valueAsNumber = 1;
         const transpose = document.getElementById('transpose') as HTMLInputElement;
-        transpose.valueAsNumber = 0;
         const notes = document.getElementById('notes') as HTMLSelectElement;
-        notes.selectedIndex = 0;
+
+        // set ui initial values. // TODO: store in a cookie for revisits
+        subdivision.selectedIndex = 1; // Eighth
+        bpm.valueAsNumber = 80;
+        maxDuration.valueAsNumber = 2;
+        minDuration.valueAsNumber = 1;
+        transpose.valueAsNumber = 0;
+        // notes.selectedIndex = 4; // TODO?
 
         const bpm$ = fromEvent<InputEvent>(bpm!, 'change')
             .pipe(
                 map((event) => (event.target as HTMLInputElement).valueAsNumber),
-                startWith(80)
+                startWith(80) // TODO: store in a cookie for revisits
             );
 
         const subdivision$ = fromEvent<InputEvent>(subdivision!, 'change')
@@ -136,14 +138,16 @@ class Main {
         const notes$ = fromEvent<InputEvent>(notes!, 'change')
             .pipe(
                 map((event) => Array.from((event.target as HTMLSelectElement).selectedOptions).map(o => +o.value)),
+                startWith([60, 62, 63])
             );
-
 
         this.noteEventStream = combineLatest([notes$, bpm$, subdivision$, maxDuration$, minDuration$, transpose$]).pipe(
             switchMap(([notes, bpm, subdivision, maxDuration, minDuration, transpose]) =>
                 createNoteEventStream(notes, bpm, subdivision, maxDuration, minDuration, transpose)),
             share()
         );
+
+        this.noteEventStream.subscribe(); // get the stream started
     }
 
     start() {
@@ -153,12 +157,12 @@ class Main {
 
         // TODO: create a transpose input
         console.log('start');
-        this.noteEventSubscription = this.noteEventStream.pipe(
-        ).subscribe(
-            noteEvent => {
-                this.playNote(noteEvent.curr!!);
-            }
-        );
+        this.noteEventSubscription = this.noteEventStream
+            .subscribe(
+                noteEvent => {
+                    this.playNote(noteEvent.curr!!);
+                }
+            );
     }
 
     stop() {
