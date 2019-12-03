@@ -20,6 +20,15 @@ interface NoteEvent {
     previous?: number;
 }
 
+interface Settings {
+    bpm: number;
+    subdivision: PulseType;
+    maxDuration: number;
+    minDuration: number;
+    transpose: number;
+    notes: number[];
+}
+
 function createPeriodStream(bpm: number, pulseType: PulseType, maxDuration: number, minDuration: number): Observable<Period> {
     const pulseMilliseconds = 60 / bpm * 1000 / pulseType;
 
@@ -77,6 +86,7 @@ class Main {
     private osc: MyOscillator | undefined;
     private noteEventSubscription: Subscription | undefined;
     private noteEventStream: Observable<NoteEvent>;
+    private settings: Settings;
 
     constructor() {
         const startButton = document.getElementById('start');
@@ -89,56 +99,69 @@ class Main {
             stopButton.addEventListener('click', () => this.stop())
         }
 
+        this.settings = this.loadSettings();
+
         // get elements
-        const subdivision = document.getElementById('subdivision') as HTMLSelectElement;
         const bpm = document.getElementById('bpm') as HTMLInputElement;
+        const subdivision = document.getElementById('subdivision') as HTMLSelectElement;
         const maxDuration = document.getElementById('max-duration') as HTMLInputElement;
         const minDuration = document.getElementById('min-duration') as HTMLInputElement;
         const transpose = document.getElementById('transpose') as HTMLInputElement;
         const notes = document.getElementById('notes') as HTMLSelectElement;
 
-        // set ui initial values. // TODO: store in a cookie for revisits
-        subdivision.selectedIndex = 1; // Eighth
-        bpm.valueAsNumber = 80;
-        maxDuration.valueAsNumber = 2;
-        minDuration.valueAsNumber = 1;
-        transpose.valueAsNumber = 0;
-        // notes.selectedIndex = 4; // TODO?
+        // set ui initial values
+        bpm.valueAsNumber = this.settings.bpm;
+        bpm.dispatchEvent(new Event('input'));
+        Array.from(subdivision.options).filter(o => +o.value === this.settings.subdivision).forEach(o => o.selected = true);
+        subdivision.dispatchEvent(new Event('input'));
+        maxDuration.valueAsNumber = this.settings.maxDuration;
+        maxDuration.dispatchEvent(new Event('input'));
+        minDuration.valueAsNumber = this.settings.minDuration;
+        minDuration.dispatchEvent(new Event('input'));
+        transpose.valueAsNumber = this.settings.transpose;
+        transpose.dispatchEvent(new Event('input'));
+        Array.from(notes.options).filter(o => this.settings.notes.includes(+o.value)).forEach(o => o.selected = true);
 
         const bpm$ = fromEvent<InputEvent>(bpm!, 'change')
             .pipe(
                 map((event) => (event.target as HTMLInputElement).valueAsNumber),
-                startWith(80) // TODO: store in a cookie for revisits
+                tap(bpm => localStorage.setItem('bpm', ''+bpm)),
+                startWith(this.settings.bpm)
             );
 
         const subdivision$ = fromEvent<InputEvent>(subdivision!, 'change')
             .pipe(
                 map((event) => +(event.target as HTMLInputElement).value as PulseType),
-                startWith(PulseType.Eighth)
+                tap(subdivision => localStorage.setItem('subdivision', ''+subdivision)),
+                startWith(this.settings.subdivision)
             );
 
         const maxDuration$ = fromEvent<InputEvent>(maxDuration!, 'change')
             .pipe(
                 map((event) => (event.target as HTMLInputElement).valueAsNumber),
-                startWith(2)
+                tap(maxDuration => localStorage.setItem('maxDuration', ''+maxDuration)),
+                startWith(this.settings.maxDuration)
             );
 
         const minDuration$ = fromEvent<InputEvent>(minDuration!, 'change')
             .pipe(
                 map((event) => (event.target as HTMLInputElement).valueAsNumber),
-                startWith(1)
+                tap(minDuration => localStorage.setItem('minDuration', ''+minDuration)),
+                startWith(this.settings.minDuration)
             );
 
         const transpose$ = fromEvent<InputEvent>(transpose!, 'change')
             .pipe(
                 map((event) => (event.target as HTMLInputElement).valueAsNumber),
-                startWith(0)
+                tap(transpose => localStorage.setItem('transpose', ''+transpose)),
+                startWith(this.settings.transpose)
             );
 
         const notes$ = fromEvent<InputEvent>(notes!, 'change')
             .pipe(
                 map((event) => Array.from((event.target as HTMLSelectElement).selectedOptions).map(o => +o.value)),
-                startWith([60, 62, 63])
+                tap(notes => localStorage.setItem('notes', JSON.stringify(notes))),
+                startWith(this.settings.notes)
             );
 
         this.noteEventStream = combineLatest([notes$, bpm$, subdivision$, maxDuration$, minDuration$, transpose$]).pipe(
@@ -150,13 +173,21 @@ class Main {
         this.noteEventStream.subscribe(); // get the stream started
     }
 
+    private loadSettings() {
+        return {
+            bpm: +(localStorage.getItem('bpm') || 80),
+            subdivision: +(localStorage.getItem('subdivision') || PulseType.Eighth),
+            maxDuration: +(localStorage.getItem('maxDuration') || 2),
+            minDuration: +(localStorage.getItem('minDuration') || 1),
+            transpose: +(localStorage.getItem('transpose') || 0),
+            notes: JSON.parse(localStorage.getItem('notes') || '[60, 62, 63]')
+        };
+    }
     start() {
         if (!this.osc) {
             this.osc = new MyOscillator();
         }
 
-        // TODO: create a transpose input
-        console.log('start');
         this.noteEventSubscription = this.noteEventStream
             .subscribe(
                 noteEvent => {
@@ -166,7 +197,6 @@ class Main {
     }
 
     stop() {
-        console.log('stop');
         this.noteEventSubscription && this.noteEventSubscription.unsubscribe();
     }
 
