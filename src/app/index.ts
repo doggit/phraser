@@ -89,14 +89,19 @@ class Main {
     private settings: Settings;
 
     constructor() {
-        const startButton = document.getElementById('start');
-        if (startButton) {
-            startButton.addEventListener('click', () => this.start())
-        }
-
-        const stopButton = document.getElementById('stop');
-        if (stopButton) {
-            stopButton.addEventListener('click', () => this.stop())
+        const playButton = document.getElementById('play-checkbox') as HTMLInputElement;
+        const playButtonText = document.getElementById('play-button-text') as HTMLElement;
+        if (playButton) {
+            playButton.addEventListener('click', (event) => {
+                const isPlaying = (event.target as HTMLInputElement).checked;
+                if (isPlaying) {
+                    playButtonText.innerText = 'Stop';
+                    this.start();
+                } else {
+                    playButtonText.innerText = 'Play';
+                    this.stop();
+                }
+            })
         }
 
         this.settings = this.loadSettings();

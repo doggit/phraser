@@ -1,0 +1,38 @@
+:root {
+    --universal-border-radius: 0.425rem;
+}
+
+#play-button, #play-button span {
+    overflow: visible;
+    text-transform: none;
+    display: inline-block;
+    background: var(--button-back-color);
+    color: var(--button-fore-color);
+    border: 0.0625rem solid var(--button-border-color);
+    border-radius: calc(1.8 * (var(--universal-border-radius)));
+    padding: var(--universal-padding) calc(1.5 * var(--universal-padding));
+    margin: 0;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.3s;
+    font-size: 2em;
+}
+
+#play-button:hover, #play-button:focus {
+    background: var(--button-hover-back-color);
+    border-color: var(--button-hover-border-color);
+}
+
+#play-button, #play-button label {
+    padding: 0;
+}
+
+#play-button {
+    margin: var(--universal-margin);
+}
+
+#play-button input:checked + span {
+    background: var(--button-fore-color);
+    color: var(--button-back-color);
+    border-radius: var(--universal-border-radius);
+}

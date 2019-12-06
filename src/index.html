@@ -10,6 +10,15 @@
 </head>
 <body>
     <div id="main">
+        <div id="play-button" class="bordered">
+            <label for="play-checkbox">
+                <input id="play-checkbox" type="checkbox" hidden>
+                <span id="play-button-text">Play</span>
+            </label>
+        </div>
+        <br/>
+        <br/>
+
         <label for="bpm">bpm:</label><br/>
         <input id="bpm" type="range" min="40" max="120" value="80" oninput="document.getElementById('bpm-output').value = this.valueAsNumber">
         <output id="bpm-output">80</output>
@@ -54,9 +63,6 @@
             <option value="71">C</option>
         </select>
         <br/>
-
-        <button id="start" class="primary bordered">Start</button>
-        <button id="stop" class="primary bordered">Stop</button>
 
     </div>
 
