@@ -1,14 +1,15 @@
 import {combineLatest, fromEvent, interval, Observable, Subscription} from "rxjs";
 import {filter, map, scan, share, startWith, switchMap, tap} from "rxjs/operators";
 
-enum PulseType {
+enum Subdivision {
     Quarter = 1,
     Eighth = 2,
     Sixteenth = 4
 }
 
 interface Period {
-    pulseIndex: number,
+    absoluteSubdivisionIndex: number;
+    subdivisionType: Subdivision;
     current: {
         duration: number; // in pulses
         currPeriodIndex: number;
@@ -17,27 +18,28 @@ interface Period {
 
 interface NoteEvent {
     curr?: number;
-    previous?: number;
+    previous?: number; // in case we need note off someday
 }
 
 interface Settings {
     bpm: number;
-    subdivision: PulseType;
+    subdivision: Subdivision;
     maxDuration: number;
     minDuration: number;
     transpose: number;
     notes: number[];
 }
 
-function createPeriodStream(bpm: number, pulseType: PulseType, maxDuration: number, minDuration: number): Observable<Period> {
-    const pulseMilliseconds = 60 / bpm * 1000 / pulseType;
+function createPeriodStream(bpm: number, subdivision: Subdivision, maxDuration: number, minDuration: number): Observable<Period> {
+    const pulseMilliseconds = 60 / bpm * 1000 / subdivision;
 
     return interval(pulseMilliseconds)
         .pipe(
             scan((note, i) => {
                 const isComplete = note.current.currPeriodIndex + 1 >= note.current.duration;
                 return {
-                    pulseIndex: i,
+                    absoluteSubdivisionIndex: i,
+                    subdivisionType: subdivision,
                     current: isComplete
                         ? {
                             duration: Math.floor(Math.random() * (maxDuration - minDuration + 1) + minDuration),
@@ -49,7 +51,8 @@ function createPeriodStream(bpm: number, pulseType: PulseType, maxDuration: numb
                         }
                 };
             }, {
-                pulseIndex: 0,
+                absoluteSubdivisionIndex: 0,
+                subdivisionType: subdivision,
                 current: {
                     duration: 0,
                     currPeriodIndex: 0
@@ -59,13 +62,12 @@ function createPeriodStream(bpm: number, pulseType: PulseType, maxDuration: numb
 
 }
 
-function createNoteEventStream(notes: number[], bpm: number, pulseType: PulseType, maxDuration: number, minDuration: number, transpose: number) {
-    const phraseLength = pulseType * 4;
-
-    const period$ = createPeriodStream(bpm, pulseType, maxDuration, minDuration);
-
-    return period$.pipe(
-        filter(pulse => Math.floor(pulse.pulseIndex / phraseLength) % 2 === 0), // silence every second phrase
+function createNoteEventStream(notes: number[], periodStream$: Observable<Period>, transpose: number) {
+    return periodStream$.pipe(
+        filter(pulse => { // silence every second phrase
+            const phraseLength = pulse.subdivisionType * 4;
+            return Math.floor(pulse.absoluteSubdivisionIndex / phraseLength) % 2 === 0;
+        }),
         filter(pulse => { // filter to only start of periods
             return pulse.current.currPeriodIndex + 1 === pulse.current.duration
         }),
@@ -130,35 +132,35 @@ class Main {
         const bpm$ = fromEvent<InputEvent>(bpm!, 'change')
             .pipe(
                 map((event) => (event.target as HTMLInputElement).valueAsNumber),
-                tap(bpm => localStorage.setItem('bpm', ''+bpm)),
+                tap(bpm => localStorage.setItem('bpm', '' + bpm)),
                 startWith(this.settings.bpm)
             );
 
         const subdivision$ = fromEvent<InputEvent>(subdivision!, 'change')
             .pipe(
-                map((event) => +(event.target as HTMLInputElement).value as PulseType),
-                tap(subdivision => localStorage.setItem('subdivision', ''+subdivision)),
+                map((event) => +(event.target as HTMLInputElement).value as Subdivision),
+                tap(subdivision => localStorage.setItem('subdivision', '' + subdivision)),
                 startWith(this.settings.subdivision)
             );
 
         const maxDuration$ = fromEvent<InputEvent>(maxDuration!, 'change')
             .pipe(
                 map((event) => (event.target as HTMLInputElement).valueAsNumber),
-                tap(maxDuration => localStorage.setItem('maxDuration', ''+maxDuration)),
+                tap(maxDuration => localStorage.setItem('maxDuration', '' + maxDuration)),
                 startWith(this.settings.maxDuration)
             );
 
         const minDuration$ = fromEvent<InputEvent>(minDuration!, 'change')
             .pipe(
                 map((event) => (event.target as HTMLInputElement).valueAsNumber),
-                tap(minDuration => localStorage.setItem('minDuration', ''+minDuration)),
+                tap(minDuration => localStorage.setItem('minDuration', '' + minDuration)),
                 startWith(this.settings.minDuration)
             );
 
         const transpose$ = fromEvent<InputEvent>(transpose!, 'change')
             .pipe(
                 map((event) => (event.target as HTMLInputElement).valueAsNumber),
-                tap(transpose => localStorage.setItem('transpose', ''+transpose)),
+                tap(transpose => localStorage.setItem('transpose', '' + transpose)),
                 startWith(this.settings.transpose)
             );
 
@@ -169,25 +171,30 @@ class Main {
                 startWith(this.settings.notes)
             );
 
-        this.noteEventStream = combineLatest([notes$, bpm$, subdivision$, maxDuration$, minDuration$, transpose$]).pipe(
-            switchMap(([notes, bpm, subdivision, maxDuration, minDuration, transpose]) =>
-                createNoteEventStream(notes, bpm, subdivision, maxDuration, minDuration, transpose)),
-            share()
-        );
+        // Emit new period stream whenever these change
+        const periodStream$$ = combineLatest([bpm$, subdivision$, maxDuration$, minDuration$])
+            .pipe(
+                map(([bpm, subdivision, maxDuration, minDuration]) => createPeriodStream(bpm, subdivision, maxDuration, minDuration)),
+                share() // make it hot
+            );
 
-        this.noteEventStream.subscribe(); // get the stream started
+        this.noteEventStream = combineLatest([notes$, periodStream$$, transpose$])
+            .pipe(
+                switchMap(([notes, periodStream$, transpose]) => createNoteEventStream(notes, periodStream$, transpose)),
+            );
     }
 
     private loadSettings() {
         return {
             bpm: +(localStorage.getItem('bpm') || 80),
-            subdivision: +(localStorage.getItem('subdivision') || PulseType.Eighth),
+            subdivision: +(localStorage.getItem('subdivision') || Subdivision.Eighth),
             maxDuration: +(localStorage.getItem('maxDuration') || 2),
             minDuration: +(localStorage.getItem('minDuration') || 1),
             transpose: +(localStorage.getItem('transpose') || 0),
             notes: JSON.parse(localStorage.getItem('notes') || '[60, 62, 63]')
         };
     }
+
     start() {
         if (!this.osc) {
             this.osc = new MyOscillator();
