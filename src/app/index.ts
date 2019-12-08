@@ -1,5 +1,5 @@
 import {combineLatest, fromEvent, interval, Observable, Subscription} from "rxjs";
-import {filter, map, scan, share, startWith, switchMap, tap} from "rxjs/operators";
+import {filter, map, scan, shareReplay, startWith, switchMap, tap} from "rxjs/operators";
 
 enum Subdivision {
     Quarter = 1,
@@ -57,7 +57,7 @@ function createPeriodStream(bpm: number, subdivision: Subdivision, maxDuration: 
                     duration: 0,
                     currPeriodIndex: 0
                 }
-            })
+            }),
         );
 
 }
@@ -85,10 +85,12 @@ function createNoteEventStream(notes: number[], periodStream$: Observable<Period
 }
 
 class Main {
-    private osc: MyOscillator | undefined;
+    private audio: Audio | undefined;
     private noteEventSubscription: Subscription | undefined;
-    private noteEventStream: Observable<NoteEvent>;
+    private noteEventStream$: Observable<NoteEvent>;
+    private clickStream$: Observable<Period>;
     private settings: Settings;
+    private clickSubscription: Subscription | undefined;
 
     constructor() {
         const playButton = document.getElementById('play-checkbox') as HTMLInputElement;
@@ -175,12 +177,19 @@ class Main {
         const periodStream$$ = combineLatest([bpm$, subdivision$, maxDuration$, minDuration$])
             .pipe(
                 map(([bpm, subdivision, maxDuration, minDuration]) => createPeriodStream(bpm, subdivision, maxDuration, minDuration)),
-                share() // make it hot
+                shareReplay(1)
             );
 
-        this.noteEventStream = combineLatest([notes$, periodStream$$, transpose$])
+        this.noteEventStream$ = combineLatest([notes$, periodStream$$, transpose$])
             .pipe(
                 switchMap(([notes, periodStream$, transpose]) => createNoteEventStream(notes, periodStream$, transpose)),
+            );
+
+
+        this.clickStream$ = periodStream$$
+            .pipe(
+                switchMap(periodStream => periodStream),
+                filter(period => period.absoluteSubdivisionIndex % period.subdivisionType === 0),
             );
     }
 
@@ -196,49 +205,52 @@ class Main {
     }
 
     start() {
-        if (!this.osc) {
-            this.osc = new MyOscillator();
+        if (!this.audio) {
+            this.audio = new Audio();
         }
 
-        this.noteEventSubscription = this.noteEventStream
-            .subscribe(
-                noteEvent => {
-                    this.playNote(noteEvent.curr!!);
-                }
-            );
+        this.clickSubscription = this.clickStream$
+            .subscribe(click => this.audio?.click());
+
+        this.noteEventSubscription = this.noteEventStream$
+            .subscribe(noteEvent => this.playNote(noteEvent.curr!!));
+
     }
 
     stop() {
         this.noteEventSubscription && this.noteEventSubscription.unsubscribe();
+        this.clickSubscription && this.clickSubscription.unsubscribe();
     }
 
     private playNote(note: number) {
-        if (this.osc) {
+        if (this.audio) {
             const frequency = 440 * Math.pow(2, (note - 69) / 12); // note -> frequency
 
-            console.log('note', note);
-
-            this.osc.play(frequency);
+            this.audio.play(frequency);
         }
     }
 
 }
 
-class MyOscillator {
+class Audio {
     private readonly audioContext: AudioContext = new AudioContext();
     private readonly osc: OscillatorNode;
     private readonly oscGain: GainNode;
     private gainAudioParam: AudioParam;
+    private clickBuffer: AudioBuffer | undefined;
 
     constructor() {
         this.osc = this.createOscillator(this.audioContext);
         // create a gain node so that we can control volume
-        this.oscGain = this.createGainNode(this.audioContext);
+        this.oscGain = new GainNode(this.audioContext, {gain: 0});
         this.gainAudioParam = this.oscGain.gain.setValueAtTime(0, this.audioContext.currentTime);
 
         // wire them up
         this.osc.connect(this.oscGain);
         this.oscGain.connect(this.audioContext.destination);
+
+        this.createClickBuffer(this.audioContext)
+            .then(buffer => this.clickBuffer = buffer);
     }
 
     play(frequency: number) {
@@ -249,6 +261,23 @@ class MyOscillator {
         this.gainAudioParam = this.oscGain.gain.exponentialRampToValueAtTime(0.0001, this.audioContext.currentTime + 2);
     }
 
+    click() {
+        if (this.clickBuffer) {
+            const click = this.audioContext.createBufferSource();
+            click.buffer = this.clickBuffer;
+            click.connect(this.audioContext.destination);
+
+            click.start();
+        }
+    }
+
+    private async createClickBuffer(audioContext: AudioContext) {
+        const response = await fetch('click.wav');
+        const arrayBuffer: ArrayBuffer = await response.arrayBuffer();
+        return await audioContext.decodeAudioData(arrayBuffer);
+    }
+
+
     private createOscillator(audioContext: AudioContext): OscillatorNode {
         const osc = audioContext.createOscillator();
         osc.type = 'square';
@@ -256,10 +285,6 @@ class MyOscillator {
         osc.start();
 
         return osc;
-    }
-
-    private createGainNode(audioContext: AudioContext) {
-        return new GainNode(audioContext, {gain: 0});
     }
 }
 

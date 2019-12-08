@@ -19,6 +19,23 @@
         <br/>
         <br/>
 
+        <label for="notes">notes:</label><br/>
+        <select id="notes" size="12" multiple class="bordered">
+            <option value="60">C</option>
+            <option value="61">C#/Db</option>
+            <option value="62">D</option>
+            <option value="63">D#/Eb</option>
+            <option value="64">E</option>
+            <option value="65">F</option>
+            <option value="66">F#/Gb</option>
+            <option value="67">G</option>
+            <option value="68">G#/Ab</option>
+            <option value="69">A</option>
+            <option value="70">A#/Bb</option>
+            <option value="71">C</option>
+        </select>
+        <br/>
+
         <label for="bpm">bpm:</label><br/>
         <input id="bpm" type="range" min="40" max="120" value="80" oninput="document.getElementById('bpm-output').value = this.valueAsNumber">
         <output id="bpm-output">80</output>
@@ -45,23 +62,6 @@
         <label for="transpose">transpose playback:</label><br/>
         <input id="transpose" type="range" min="-12" max="12" value="0" oninput="document.getElementById('transpose-output').value = this.valueAsNumber">
         <output id="transpose-output">0</output>
-        <br/>
-
-        <label for="notes">notes:</label><br/>
-        <select id="notes" size="12" multiple class="bordered">
-            <option value="60">C</option>
-            <option value="61">C#/Db</option>
-            <option value="62">D</option>
-            <option value="63">D#/Eb</option>
-            <option value="64">E</option>
-            <option value="65">F</option>
-            <option value="66">F#/Gb</option>
-            <option value="67">G</option>
-            <option value="68">G#/Ab</option>
-            <option value="69">A</option>
-            <option value="70">A#/Bb</option>
-            <option value="71">C</option>
-        </select>
         <br/>
 
     </div>
