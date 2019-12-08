@@ -24,11 +24,11 @@ interface NoteEvent {
 interface Settings {
     bpm: number;
     subdivision: Subdivision;
-    maxDuration: number;
-    minDuration: number;
     transpose: number;
     notes: number[];
 }
+
+const barLength = 4; // could make this user-configurable
 
 function createPeriodStream(bpm: number, subdivision: Subdivision, maxDuration: number, minDuration: number): Observable<Period> {
     const pulseMilliseconds = 60 / bpm * 1000 / subdivision;
@@ -65,7 +65,7 @@ function createPeriodStream(bpm: number, subdivision: Subdivision, maxDuration: 
 function createNoteEventStream(notes: number[], periodStream$: Observable<Period>, transpose: number) {
     return periodStream$.pipe(
         filter(pulse => { // silence every second phrase
-            const phraseLength = pulse.subdivisionType * 4;
+            const phraseLength = pulse.subdivisionType * barLength;
             return Math.floor(pulse.absoluteSubdivisionIndex / phraseLength) % 2 === 0;
         }),
         filter(pulse => { // filter to only start of periods
@@ -123,10 +123,6 @@ class Main {
         bpm.dispatchEvent(new Event('input'));
         Array.from(subdivision.options).filter(o => +o.value === this.settings.subdivision).forEach(o => o.selected = true);
         subdivision.dispatchEvent(new Event('input'));
-        maxDuration.valueAsNumber = this.settings.maxDuration;
-        maxDuration.dispatchEvent(new Event('input'));
-        minDuration.valueAsNumber = this.settings.minDuration;
-        minDuration.dispatchEvent(new Event('input'));
         transpose.valueAsNumber = this.settings.transpose;
         transpose.dispatchEvent(new Event('input'));
         Array.from(notes.options).filter(o => this.settings.notes.includes(+o.value)).forEach(o => o.selected = true);
@@ -145,20 +141,6 @@ class Main {
                 startWith(this.settings.subdivision)
             );
 
-        const maxDuration$ = fromEvent<InputEvent>(maxDuration!, 'change')
-            .pipe(
-                map((event) => (event.target as HTMLInputElement).valueAsNumber),
-                tap(maxDuration => localStorage.setItem('maxDuration', '' + maxDuration)),
-                startWith(this.settings.maxDuration)
-            );
-
-        const minDuration$ = fromEvent<InputEvent>(minDuration!, 'change')
-            .pipe(
-                map((event) => (event.target as HTMLInputElement).valueAsNumber),
-                tap(minDuration => localStorage.setItem('minDuration', '' + minDuration)),
-                startWith(this.settings.minDuration)
-            );
-
         const transpose$ = fromEvent<InputEvent>(transpose!, 'change')
             .pipe(
                 map((event) => (event.target as HTMLInputElement).valueAsNumber),
@@ -174,9 +156,12 @@ class Main {
             );
 
         // Emit new period stream whenever these change
-        const periodStream$$ = combineLatest([bpm$, subdivision$, maxDuration$, minDuration$])
+        const periodStream$$ = combineLatest([bpm$, subdivision$])
             .pipe(
-                map(([bpm, subdivision, maxDuration, minDuration]) => createPeriodStream(bpm, subdivision, maxDuration, minDuration)),
+                map(([bpm, subdivision]) => {
+                    const maxDuration = (subdivision * 2) - 1;
+                    return createPeriodStream(bpm, subdivision, maxDuration, 1);
+                }),
                 shareReplay(1)
             );
 
