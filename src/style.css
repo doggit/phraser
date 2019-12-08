@@ -1,21 +1,37 @@
 :root {
     --universal-border-radius: 0.425rem;
+    --back-color: #a3aab7;
 }
 
-#play-button, #play-button span {
+input {
+    width: 100%;
+}
+
+.check-button {
+    margin-bottom: 0.4rem;
+}
+
+.check-button span {
     overflow: visible;
     text-transform: none;
-    display: inline-block;
     background: var(--button-back-color);
     color: var(--button-fore-color);
+    border-radius: var(--universal-border-radius);
     border: 0.0625rem solid var(--button-border-color);
-    border-radius: calc(1.8 * (var(--universal-border-radius)));
-    padding: var(--universal-padding) calc(1.5 * var(--universal-padding));
-    margin: 0;
+    padding: calc(0.4 * var(--universal-padding)) calc(0.8 * var(--universal-padding));
     text-decoration: none;
     cursor: pointer;
     transition: background 0.3s;
-    font-size: 2em;
+}
+
+#play-button, #play-button span {
+    display: inline-block;
+    border-radius: calc(1.8 * (var(--universal-border-radius)));
+    padding-top: 0;
+    padding-bottom: calc(0.8 * var(--universal-padding));
+    padding-left: calc(4.5 * var(--universal-padding));
+    padding-right: calc(4.0 * var(--universal-padding));
+    font-size: 3em;
 }
 
 #play-button:hover, #play-button:focus {
@@ -31,8 +47,27 @@
     margin: var(--universal-margin);
 }
 
-#play-button input:checked + span {
+.check-button input:checked + span {
     background: var(--button-fore-color);
     color: var(--button-back-color);
-    border-radius: var(--universal-border-radius);
 }
+
+#notes {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.row {
+    margin-bottom: var(--universal-margin);
+}
+
+label {
+    padding-right: 0;
+}
+
+output {
+    padding: 0;
+    font-weight: bold;
+}
+

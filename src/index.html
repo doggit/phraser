@@ -9,53 +9,79 @@
     <link rel="stylesheet" href="./style.css"/>
 </head>
 <body>
-    <div id="main">
-        <div id="play-button" class="bordered">
-            <label for="play-checkbox">
-                <input id="play-checkbox" type="checkbox" hidden>
-                <span id="play-button-text">Play</span>
-            </label>
+<div id="main" class="container bordered col-lg-6 col-md-8 col-sm-12">
+
+    <div class="row">
+        <div class="col-sm-12">
+            <div id="play-button" class="check-button bordered">
+                <label for="play-checkbox">
+                    <input id="play-checkbox" type="checkbox" hidden>
+                    <span id="play-button-text">&#9654;</span>
+                </label>
+            </div>
         </div>
-        <br/>
-        <br/>
-
-        <label for="notes">notes:</label><br/>
-        <select id="notes" size="12" multiple class="bordered">
-            <option value="60">C</option>
-            <option value="61">C#/Db</option>
-            <option value="62">D</option>
-            <option value="63">D#/Eb</option>
-            <option value="64">E</option>
-            <option value="65">F</option>
-            <option value="66">F#/Gb</option>
-            <option value="67">G</option>
-            <option value="68">G#/Ab</option>
-            <option value="69">A</option>
-            <option value="70">A#/Bb</option>
-            <option value="71">C</option>
-        </select>
-        <br/>
-
-        <label for="bpm">bpm:</label><br/>
-        <input id="bpm" type="range" min="40" max="120" value="80" oninput="document.getElementById('bpm-output').value = this.valueAsNumber">
-        <output id="bpm-output">80</output>
-        <br/>
-
-        <label for="subdivision">subdivision type:</label><br/>
-        <select id="subdivision" class="bordered">
-            <option value="1">Quarter</option>
-            <option value="2">Eighth</option>
-            <option value="4">Sixteenth</option>
-        </select>
-        <br/>
-
-        <label for="transpose">transpose playback:</label><br/>
-        <input id="transpose" type="range" min="-12" max="12" value="0" oninput="document.getElementById('transpose-output').value = this.valueAsNumber">
-        <output id="transpose-output">0</output>
-        <br/>
-
     </div>
 
-    <script src="./app/index.ts"></script>
+    <div class="row">
+        <div class="col-sm-3 col-md-3 col-lg-2 label-column">
+            <label class="right">notes:</label>
+        </div>
+        <div class="col-sm-9 col-md-9 col-lg-10">
+            <div id="notes">
+                <div class="check-button"><label for="C"><input id="C" type="checkbox" hidden value="60" name="notes"><span>C</span></label></div>
+                <div class="check-button"><label for="C#"><input id="C#" type="checkbox" hidden value="61" name="notes"><span>C&#9839;/D&#9837;</span></label></div>
+                <div class="check-button"><label for="D"><input id="D" type="checkbox" hidden value="62" name="notes"><span>D</span></label></div>
+                <div class="check-button"><label for="D#"><input id="D#" type="checkbox" hidden value="63" name="notes"><span>D&#9839;/E&#9837;</span></label></div>
+                <div class="check-button"><label for="E"><input id="E" type="checkbox" hidden value="64" name="notes"><span>E</span></label></div>
+                <div class="check-button"><label for="F"><input id="F" type="checkbox" hidden value="65" name="notes"><span>F</span></label></div>
+                <div class="check-button"><label for="F#"><input id="F#" type="checkbox" hidden value="66" name="notes"><span>F&#9839;/G&#9837;</span></label></div>
+                <div class="check-button"><label for="G"><input id="G" type="checkbox" hidden value="67" name="notes"><span>G</span></label></div>
+                <div class="check-button"><label for="G#"><input id="G#" type="checkbox" hidden value="68" name="notes"><span>G&#9839;/A&#9837;</span></label></div>
+                <div class="check-button"><label for="A"><input id="A" type="checkbox" hidden value="69" name="notes"><span>A</span></label></div>
+                <div class="check-button"><label for="A#"><input id="A#" type="checkbox" hidden value="70" name="notes"><span>A&#9839;/B&#9837;</span></label></div>
+                <div class="check-button"><label for="B"><input id="B" type="checkbox" hidden value="71" name="notes"><span>B</span></label></div>
+                <div class="check-button"><label for="C5"><input id="C5" type="checkbox" hidden value="72" name="notes"><span>C</span></label></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-3 col-md-3 col-lg-2 label-column">
+            <label for="bpm">bpm:</label>
+            <output id="bpm-output">80</output>
+        </div>
+        <div class="col-sm-9 col-md-9 col-lg-10">
+            <input id="bpm" type="range" min="40" max="120" value="80"
+                   oninput="document.getElementById('bpm-output').value = this.valueAsNumber">
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-3 col-md-3 col-lg-2 label-column">
+            <label for="subdivision">subdivision:</label>
+        </div>
+        <div class="col-sm-9 col-md-9 col-lg-10">
+            <select id="subdivision" class="bordered">
+                <option value="1">Quarter</option>
+                <option value="2">Eighth</option>
+                <option value="4">Sixteenth</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-3 col-md-3 col-lg-2 label-column">
+            <label for="transpose">transpose:</label>
+            <output id="transpose-output">0</output>
+        </div>
+        <div class="col-sm-9 col-md-9 col-lg-10">
+            <input id="transpose" type="range" min="-12" max="12" value="0"
+                   oninput="document.getElementById('transpose-output').value = this.valueAsNumber">
+        </div>
+    </div>
+
+</div>
+
+<script src="./app/index.ts"></script>
 </body>
 </html>

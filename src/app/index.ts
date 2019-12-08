@@ -1,5 +1,5 @@
 import {combineLatest, fromEvent, interval, Observable, Subscription} from "rxjs";
-import {filter, map, scan, shareReplay, startWith, switchMap, tap} from "rxjs/operators";
+import {filter, map, scan, share, shareReplay, startWith, switchMap, tap} from "rxjs/operators";
 
 enum Subdivision {
     Quarter = 1,
@@ -58,6 +58,7 @@ function createPeriodStream(bpm: number, subdivision: Subdivision, maxDuration: 
                     currPeriodIndex: 0
                 }
             }),
+            share()
         );
 
 }
@@ -99,10 +100,10 @@ class Main {
             playButton.addEventListener('click', (event) => {
                 const isPlaying = (event.target as HTMLInputElement).checked;
                 if (isPlaying) {
-                    playButtonText.innerText = 'Stop';
+                    playButtonText.innerHTML = '&#9724;';
                     this.start();
                 } else {
-                    playButtonText.innerText = 'Play';
+                    playButtonText.innerHTML = '&#9654;';
                     this.stop();
                 }
             })
@@ -113,10 +114,9 @@ class Main {
         // get elements
         const bpm = document.getElementById('bpm') as HTMLInputElement;
         const subdivision = document.getElementById('subdivision') as HTMLSelectElement;
-        const maxDuration = document.getElementById('max-duration') as HTMLInputElement;
-        const minDuration = document.getElementById('min-duration') as HTMLInputElement;
         const transpose = document.getElementById('transpose') as HTMLInputElement;
-        const notes = document.getElementById('notes') as HTMLSelectElement;
+        const notes = document.querySelectorAll('input[name="notes"]');
+        // const notes = document.getElementById('notes') as HTMLSelectElement;
 
         // set ui initial values
         bpm.valueAsNumber = this.settings.bpm;
@@ -125,7 +125,10 @@ class Main {
         subdivision.dispatchEvent(new Event('input'));
         transpose.valueAsNumber = this.settings.transpose;
         transpose.dispatchEvent(new Event('input'));
-        Array.from(notes.options).filter(o => this.settings.notes.includes(+o.value)).forEach(o => o.selected = true);
+        Array.from(notes)
+            .map(e => e as HTMLInputElement)
+            .filter(checkbox => this.settings.notes.includes(+checkbox.value))
+            .forEach(checkbox => checkbox.checked = true);
 
         const bpm$ = fromEvent<InputEvent>(bpm!, 'change')
             .pipe(
@@ -148,9 +151,16 @@ class Main {
                 startWith(this.settings.transpose)
             );
 
-        const notes$ = fromEvent<InputEvent>(notes!, 'change')
+        const notes$ = fromEvent<InputEvent>(notes, 'change')
             .pipe(
-                map((event) => Array.from((event.target as HTMLSelectElement).selectedOptions).map(o => +o.value)),
+                map((event) => {
+                    const checkbox = event.target as HTMLInputElement;
+                    const currentNotes = document.querySelectorAll('input[name="notes"]');
+                    return Array.from(currentNotes)
+                        .map(e => e as HTMLInputElement)
+                        .filter(checkbox => checkbox.checked)
+                        .map(checkbox => +checkbox.value);
+                }),
                 tap(notes => localStorage.setItem('notes', JSON.stringify(notes))),
                 startWith(this.settings.notes)
             );
@@ -195,7 +205,7 @@ class Main {
         }
 
         this.clickSubscription = this.clickStream$
-            .subscribe(click => this.audio?.click());
+            .subscribe(() => this.audio?.click());
 
         this.noteEventSubscription = this.noteEventStream$
             .subscribe(noteEvent => this.playNote(noteEvent.curr!!));
@@ -208,7 +218,7 @@ class Main {
     }
 
     private playNote(note: number) {
-        if (this.audio) {
+        if (this.audio && note) {
             const frequency = 440 * Math.pow(2, (note - 69) / 12); // note -> frequency
 
             this.audio.play(frequency);
