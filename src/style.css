@@ -10,6 +10,7 @@ html, body, #main {
     max-width: 30rem;
     background-color: #a3aab7;
     padding: var(--universal-padding);
+    border-radius: var(--universal-border-radius);
 }
 
 input {
@@ -61,7 +62,7 @@ input {
     color: var(--button-back-color);
 }
 
-#notes {
+#notes, #subdivision {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
@@ -78,5 +79,6 @@ label {
 output {
     padding: 0;
     font-weight: bold;
+    font-size: 1.2em;
 }
 

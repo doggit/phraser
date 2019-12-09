@@ -112,23 +112,37 @@ class Main {
         this.settings = this.loadSettings();
 
         // get elements
-        const bpm = document.getElementById('bpm') as HTMLInputElement;
-        const subdivision = document.getElementById('subdivision') as HTMLSelectElement;
-        const transpose = document.getElementById('transpose') as HTMLInputElement;
         const notes = document.querySelectorAll('input[name="notes"]');
-        // const notes = document.getElementById('notes') as HTMLSelectElement;
+        const bpm = document.getElementById('bpm') as HTMLInputElement;
+        const subdivision = document.querySelectorAll('input[name="subdivision"]');
+        const transpose = document.getElementById('transpose') as HTMLInputElement;
 
         // set ui initial values
-        bpm.valueAsNumber = this.settings.bpm;
-        bpm.dispatchEvent(new Event('input'));
-        Array.from(subdivision.options).filter(o => +o.value === this.settings.subdivision).forEach(o => o.selected = true);
-        subdivision.dispatchEvent(new Event('input'));
-        transpose.valueAsNumber = this.settings.transpose;
-        transpose.dispatchEvent(new Event('input'));
         Array.from(notes)
             .map(e => e as HTMLInputElement)
             .filter(checkbox => this.settings.notes.includes(+checkbox.value))
             .forEach(checkbox => checkbox.checked = true);
+        bpm.valueAsNumber = this.settings.bpm;
+        bpm.dispatchEvent(new Event('input'));
+        Array.from(subdivision)
+            .map(e => e as HTMLInputElement)
+            .filter(radio => this.settings.subdivision === +radio.value)
+            .forEach(radio => radio.checked = true);
+        transpose.valueAsNumber = this.settings.transpose;
+        transpose.dispatchEvent(new Event('input'));
+
+        const notes$ = fromEvent<InputEvent>(notes, 'change')
+            .pipe(
+                map(() => {
+                    const currentNotes = document.querySelectorAll('input[name="notes"]');
+                    return Array.from(currentNotes)
+                        .map(e => e as HTMLInputElement)
+                        .filter(checkbox => checkbox.checked)
+                        .map(checkbox => +checkbox.value);
+                }),
+                tap(notes => localStorage.setItem('notes', JSON.stringify(notes))),
+                startWith(this.settings.notes)
+            );
 
         const bpm$ = fromEvent<InputEvent>(bpm!, 'change')
             .pipe(
@@ -137,9 +151,16 @@ class Main {
                 startWith(this.settings.bpm)
             );
 
-        const subdivision$ = fromEvent<InputEvent>(subdivision!, 'change')
+        const subdivision$ = fromEvent<InputEvent>(subdivision, 'change')
             .pipe(
-                map((event) => +(event.target as HTMLInputElement).value as Subdivision),
+                map(() => {
+                    const subdivisions = document.querySelectorAll('input[name="subdivision"]');
+                    const selecteds = Array.from(subdivisions)
+                        .map(e => e as HTMLInputElement)
+                        .filter(radio => radio.checked)
+                        .map(radio => radio.value);
+                    return +selecteds[0]
+                }),
                 tap(subdivision => localStorage.setItem('subdivision', '' + subdivision)),
                 startWith(this.settings.subdivision)
             );
@@ -149,20 +170,6 @@ class Main {
                 map((event) => (event.target as HTMLInputElement).valueAsNumber),
                 tap(transpose => localStorage.setItem('transpose', '' + transpose)),
                 startWith(this.settings.transpose)
-            );
-
-        const notes$ = fromEvent<InputEvent>(notes, 'change')
-            .pipe(
-                map((event) => {
-                    const checkbox = event.target as HTMLInputElement;
-                    const currentNotes = document.querySelectorAll('input[name="notes"]');
-                    return Array.from(currentNotes)
-                        .map(e => e as HTMLInputElement)
-                        .filter(checkbox => checkbox.checked)
-                        .map(checkbox => +checkbox.value);
-                }),
-                tap(notes => localStorage.setItem('notes', JSON.stringify(notes))),
-                startWith(this.settings.notes)
             );
 
         // Emit new period stream whenever these change
@@ -180,6 +187,7 @@ class Main {
                 switchMap(([notes, periodStream$, transpose]) => createNoteEventStream(notes, periodStream$, transpose)),
             );
 
+        this.noteEventStream$.subscribe(); // hack to enable setting changes before the first play
 
         this.clickStream$ = periodStream$$
             .pipe(
