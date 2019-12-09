@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="./style.css"/>
 </head>
 <body>
-<div id="main" class="container bordered col-lg-6 col-md-8 col-sm-12">
+<div id="main" class="container bordered">
 
     <div class="row">
         <div class="col-sm-12">
@@ -23,10 +23,12 @@
     </div>
 
     <div class="row">
-        <div class="col-sm-3 col-md-3 col-lg-2 label-column">
+        <div>
             <label class="right">notes:</label>
         </div>
-        <div class="col-sm-9 col-md-9 col-lg-10">
+    </div>
+    <div class="row">
+        <div class="col-sm-11 col-sm-offset-1">
             <div id="notes">
                 <div class="check-button"><label for="C"><input id="C" type="checkbox" hidden value="60" name="notes"><span>C</span></label></div>
                 <div class="check-button"><label for="C#"><input id="C#" type="checkbox" hidden value="61" name="notes"><span>C&#9839;/D&#9837;</span></label></div>
@@ -46,21 +48,25 @@
     </div>
 
     <div class="row">
-        <div class="col-sm-3 col-md-3 col-lg-2 label-column">
+        <div>
             <label for="bpm">bpm:</label>
             <output id="bpm-output">80</output>
         </div>
-        <div class="col-sm-9 col-md-9 col-lg-10">
+    </div>
+    <div class="row">
+        <div class="col-sm-11 col-sm-offset-1">
             <input id="bpm" type="range" min="40" max="120" value="80"
                    oninput="document.getElementById('bpm-output').value = this.valueAsNumber">
         </div>
     </div>
 
     <div class="row">
-        <div class="col-sm-3 col-md-3 col-lg-2 label-column">
+        <div>
             <label for="subdivision">subdivision:</label>
         </div>
-        <div class="col-sm-9 col-md-9 col-lg-10">
+    </div>
+    <div class="row">
+        <div class="col-sm-11 col-sm-offset-1">
             <select id="subdivision" class="bordered">
                 <option value="1">Quarter</option>
                 <option value="2">Eighth</option>
@@ -70,11 +76,13 @@
     </div>
 
     <div class="row">
-        <div class="col-sm-3 col-md-3 col-lg-2 label-column">
+        <div>
             <label for="transpose">transpose:</label>
             <output id="transpose-output">0</output>
         </div>
-        <div class="col-sm-9 col-md-9 col-lg-10">
+    </div>
+    <div class="row">
+        <div class="col-sm-11 col-sm-offset-1">
             <input id="transpose" type="range" min="-12" max="12" value="0"
                    oninput="document.getElementById('transpose-output').value = this.valueAsNumber">
         </div>

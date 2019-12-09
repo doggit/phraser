@@ -1,6 +1,15 @@
 :root {
     --universal-border-radius: 0.425rem;
-    --back-color: #a3aab7;
+}
+
+html, body, #main {
+    height: 100%;
+}
+
+#main {
+    max-width: 30rem;
+    background-color: #a3aab7;
+    padding: var(--universal-padding);
 }
 
 input {
