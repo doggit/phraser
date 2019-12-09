@@ -243,6 +243,10 @@ class Audio {
     private clickBuffer: AudioBuffer | undefined;
 
     constructor() {
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
+
         this.osc = this.createOscillator(this.audioContext);
         // create a gain node so that we can control volume
         this.oscGain = new GainNode(this.audioContext, {gain: 0});
