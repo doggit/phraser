@@ -2,20 +2,21 @@
   "name": "phraser",
   "version": "0.0.1",
   "description": "Musical phrase generator",
-  "main": "index.js",
   "scripts": {
-    "start": "parcel serve src/index.html"
+    "start": "parcel src/index.html src/assets/click.wav",
+    "build": "parcel build src/index.html src/assets/click.wav"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "parcel-bundler": "^1.12.4",
-    "parcel-plugin-asset-copier": "^1.0.0",
-    "rxjs": "^6.5.3",
-    "typescript": "^3.7.2"
+    "@parcel/config-default": "^2.12.0",
+    "@parcel/transformer-typescript-tsc": "^2.12.0",
+    "parcel": "^2.12.0",
+    "rxjs": "^7.8.1",
+    "tslib": "^2.6.2",
+    "typescript": "^5.4.3"
   },
   "dependencies": {
     "mini.css": "^3.0.1"
-  },
-  "assetsPath": "src/assets"
+  }
 }

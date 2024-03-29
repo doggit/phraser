@@ -279,7 +279,7 @@ class Audio {
     }
 
     private async createClickBuffer(audioContext: AudioContext) {
-        const response = await fetch('click.wav');
+        const response = await fetch('assets/click.wav');
         const arrayBuffer: ArrayBuffer = await response.arrayBuffer();
         return await audioContext.decodeAudioData(arrayBuffer);
     }
